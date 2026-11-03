@@ -18,11 +18,15 @@
 - **Text Snippets**: Accepts dragged text selections, generating structured snippet files stored within the local app sandbox.
 - **Promised Files**: Coordinates with `NSFilePromiseReceiver` to extract drag-promised items asynchronously.
 
-### 3. Collection Drawer Interface
+### 3. Collection Drawer & Board Interface
 - **Floating Panel**: Non-activating, floating window (`NSPanel`) styled with rounded corners and subtle border strokes.
 - **Spring Animations**: Native SwiftUI slide-out transition anchored to the top-right edge.
-- **Category Drop Targets**: Responsive drop targets with visual targeting cues when hovering over a destination category.
-- **Category List & Rows**: Displaying item counts, category color badges, and expanded item lists.
+- **Board Cards**: Expandable board sections displaying item counts, color badges, media grid previews, and quick action controls.
+- **Automatic Board Creation**: Dropping files onto an empty area of the sidebar automatically initiates the Create Board modal, preserving the dragged payload and immediately assigning dropped files to the newly created board upon confirmation.
+- **Circular Color Palette Selector**: 10 distinct curated accent colors accessible via an interactive circular popover.
+- **Interactive Media Grid**: Direct file thumbnail preview cards, multi-file inspection, and native QuickLook preview integration (`Spacebar`).
+- **Drag-Out Export Provider**: Dragging items directly out of the Kikobar drawer into Finder, Mail, Slack, or web forms with full security-scoped URL and file promise support.
+- **Safe Board Deletion**: Themed confirmation modal to prevent accidental board deletion and coordinate clean cascading item removal.
 
 ### 4. Custom Categories & Appearance
 - **Custom Accent Colors**: Categories support custom colors configured via 3-digit or 6-digit HEX values (e.g., `#8B7CFF`, `#FF5733`).

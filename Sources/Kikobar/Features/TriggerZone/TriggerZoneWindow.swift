@@ -12,7 +12,7 @@ extension Notification.Name {
 
 // MARK: - TriggerZoneWindow
 
-/// Borderless edge target window placed in the top-right screen quadrant to detect drags across monitors.
+/// Borderless edge target window placed in the top-right screen quadrant to detect drags and mouse hover across monitors.
 public final class TriggerZoneWindow: NSPanel {
     public init(contentRect: NSRect) {
         super.init(
@@ -66,7 +66,7 @@ public final class TriggerZoneWindow: NSPanel {
 // MARK: - TriggerZoneDestinationView
 
 /// AppKit view conforming to NSDraggingDestination to intercept drag entrance, track proximity,
-/// and handle drag cancellation with auto-dismiss delays.
+/// detect mouse hover corner activation, and coordinate with DragSessionManager.
 public final class TriggerZoneDestinationView: NSView {
     /// Callback triggered when a drag session enters the trigger zone on a specific screen.
     public var onDragEntered: ((_ screen: NSScreen) -> Void)?
@@ -111,11 +111,51 @@ public final class TriggerZoneDestinationView: NSView {
         exitTimer?.invalidate()
     }
 
+    public override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        for area in trackingAreas {
+            removeTrackingArea(area)
+        }
+        let trackingArea = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .mouseMoved, .activeAlways, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(trackingArea)
+    }
+
     public override func hitTest(_ point: NSPoint) -> NSView? {
-        // Pass regular mouse clicks directly through to underlying windows so the edge zone
-        // never interferes with normal user clicks on scrollbars or desktop windows.
-        // NSDraggingDestination continues to receive drag events via AppKit WindowServer.
-        return nil
+        // Only intercept for drag events; do not intercept normal mouse clicks so underlying apps work freely
+        return isDragActive ? self : nil
+    }
+
+    // MARK: - Mouse Hover & Click Overrides
+
+    public override func mouseEntered(with event: NSEvent) {
+        let screen = targetScreen()
+        Task { @MainActor in
+            DragSessionManager.shared.activateViaMouseHover(on: screen)
+        }
+    }
+
+    public override func mouseMoved(with event: NSEvent) {
+        Task { @MainActor in
+            DragSessionManager.shared.handlePointerMoved(at: NSEvent.mouseLocation)
+        }
+    }
+
+    public override func mouseExited(with event: NSEvent) {
+        Task { @MainActor in
+            DragSessionManager.shared.handlePointerMoved(at: NSEvent.mouseLocation)
+        }
+    }
+
+    public override func mouseDown(with event: NSEvent) {
+        let screen = targetScreen()
+        Task { @MainActor in
+            DragSessionManager.shared.activateViaMouseHover(on: screen)
+        }
     }
 
     // MARK: - NSDraggingDestination Overrides
@@ -134,6 +174,10 @@ public final class TriggerZoneDestinationView: NSView {
             userInfo: ["screen": screen]
         )
 
+        Task { @MainActor in
+            DragSessionManager.shared.dragEnteredTriggerZone(screen: screen)
+        }
+
         onDragEntered?(screen)
         return .copy
     }
@@ -151,22 +195,38 @@ public final class TriggerZoneDestinationView: NSView {
         }
         self.currentProximity = proximity
 
+        Task { @MainActor in
+            DragSessionManager.shared.cancelDismissal()
+        }
+
         onDragUpdated?(screen, location, proximity)
         return .copy
     }
 
     public override func draggingExited(_ sender: NSDraggingInfo?) {
-        AppLogger.drag.debug("Drag exited trigger zone; starting cancellation timer (\(self.exitDelay)s)...")
-        exitTimer?.invalidate()
+        AppLogger.drag.debug("Drag exited trigger zone bounds")
 
+        let mousePos = NSEvent.mouseLocation
+        Task { @MainActor in
+            DragSessionManager.shared.dragExitedTriggerZone(at: mousePos)
+        }
+
+        // Coordinate fallback timer only if pointer genuinely left the interactive area
+        exitTimer?.invalidate()
         exitTimer = Timer.scheduledTimer(withTimeInterval: exitDelay, repeats: false) { [weak self] _ in
             guard let self = self else { return }
-            self.isDragActive = false
-            self.currentProximity = 0.0
-            AppLogger.drag.debug("Trigger zone drag cancelled after debounce.")
-            NotificationCenter.default.post(name: .kikobarDragExitedTriggerZone, object: self)
-            self.onDragCancelled?()
-            self.onDragExited?()
+            Task { @MainActor in
+                // If DragSessionManager confirms drag is still active in the panel, do not cancel
+                if DragSessionManager.shared.isDragSessionActive || DragSessionManager.shared.isPointInInteractiveArea(NSEvent.mouseLocation) {
+                    return
+                }
+                self.isDragActive = false
+                self.currentProximity = 0.0
+                AppLogger.drag.debug("Trigger zone drag cancelled after debounce.")
+                NotificationCenter.default.post(name: .kikobarDragExitedTriggerZone, object: self)
+                self.onDragCancelled?()
+                self.onDragExited?()
+            }
         }
     }
 
@@ -175,6 +235,11 @@ public final class TriggerZoneDestinationView: NSView {
         exitTimer = nil
         isDragActive = false
         currentProximity = 0.0
+
+        Task { @MainActor in
+            DragSessionManager.shared.dragCancelledOrEnded()
+        }
+
         onDragEnded?()
     }
 
@@ -190,6 +255,11 @@ public final class TriggerZoneDestinationView: NSView {
 
         let screen = targetScreen()
         AppLogger.drag.info("Direct drop performed on trigger zone of screen \(screen.localizedName)")
+
+        Task { @MainActor in
+            DragSessionManager.shared.cancelDismissal()
+        }
+
         return onPerformDrop?(sender.draggingPasteboard, screen) ?? true
     }
 

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="Assets/Logo/kikobar-logo.png" alt="Kikobar Logo" width="140" />
+  <img src="Assets/Logo/kikobar-logo.png" alt="Kikobar Logo" width="160" />
 </p>
 
 <h1 align="center">Kikobar</h1>
@@ -10,161 +10,253 @@
 </p>
 
 <p align="center">
-  <code>BETA</code> &nbsp;•&nbsp; <code>macOS 14+</code> &nbsp;•&nbsp; <code>Swift</code> &nbsp;•&nbsp; <code>Native</code>
+  <a href="Releases/Kikobar-v0.1.0-alpha.zip"><img src="https://img.shields.io/badge/Release-v0.1.0--alpha-8B7CFF?style=flat-square" alt="Alpha Release" /></a>
+  <img src="https://img.shields.io/badge/macOS-14.0%2B%20(Sonoma)-161618?style=flat-square&logo=apple" alt="macOS 14+" />
+  <img src="https://img.shields.io/badge/Swift-5.9%20%7C%206.0-FA7343?style=flat-square&logo=swift" alt="Swift 5.9+" />
+  <img src="https://img.shields.io/badge/UI-SwiftUI%20%2B%20AppKit-blue?style=flat-square" alt="SwiftUI + AppKit" />
+  <img src="https://img.shields.io/badge/Database-SQLite%20WAL-003B57?style=flat-square&logo=sqlite" alt="SQLite WAL" />
+  <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="MIT License" />
 </p>
 
 ---
 
 ## What is Kikobar?
 
-Kikobar is a native macOS drag-and-drop collection utility. It allows you to collect files, images, documents, URLs, text snippets, and other content from anywhere on your Mac without interrupting your current workflow.
+**Kikobar** is a native macOS drag-and-drop collection utility designed to eliminate temporary desktop clutter and disjointed file transfers. It provides a lightweight, persistent floating collection drawer that stays hidden until you need it.
 
-Instead of keeping messy piles of temporary files on your desktop or switching back and forth between Finder windows, Kikobar provides an on-demand floating collection drawer that stays tucked away until you need it.
+Whenever you drag files, images, browser links, or text snippets towards the top-right corner of your screen, Kikobar smoothly reveals an organized collection drawer. Drop items into customized color-coded boards, preview media with native macOS QuickLook, or drop files directly into empty sidebar space to spin up a new board on the fly.
 
-> **Current Status: Beta**  
-> Kikobar is currently in active beta development. Core drag ingestion, trigger mechanics, category organization, and local persistence are functional and verified by tests. User interface details and features are continuing to evolve.
+> [!NOTE]
+> **Status: Alpha (v0.1.0-alpha)**  
+> Kikobar is actively developed. The core ingestion engine, floating window architecture, SQLite persistence, and UI are fully functional. Feedback, issue reports, and community contributions are warmly welcomed!
+
+---
+
+## ⚡️ Quick Download & Install (Alpha)
+
+The compiled, notarized-ready Alpha release is pre-packaged and available directly in the repository:
+
+| Version | Package | Minimum OS | Architecture |
+| :--- | :--- | :--- | :--- |
+| **v0.1.0-alpha** | [**Download Kikobar-v0.1.0-alpha.zip**](Releases/Kikobar-v0.1.0-alpha.zip) | macOS 14.0+ | Apple Silicon & Intel |
+
+### One-line Installation:
+```bash
+# Unzip and move to Applications
+unzip Releases/Kikobar-v0.1.0-alpha.zip -d /Applications/
+open /Applications/Kikobar.app
+```
+
+---
+
+## 📸 Feature Walkthrough
+
+### 1. Floating Collection Drawer & Expandable Boards
+Smooth slide-out panel anchored to your display edge. Color-coded boards hold your collected assets with live item counters, inline action menus, and thumbnail previews. Drag items straight out into any app, Finder folder, or Slack conversation.
+
+<p align="center">
+  <img src="Assets/Screenshots/01-drawer-overview.png" alt="Kikobar Drawer Overview" width="780" />
+</p>
+
+---
+
+### 2. Automatic Board Creation on Drag-and-Drop
+Drop a file (or multiple files) anywhere on an empty area of the sidebar. Kikobar instantly initiates an inline board creation dialog, preserving your dropped payloads and assigning them immediately upon confirmation.
+
+<p align="center">
+  <img src="Assets/Screenshots/02-automatic-board-creation.png" alt="Automatic Board Creation Flow" width="780" />
+</p>
+
+---
+
+### 3. Circular Color Palette & Board Customization
+Personalize your workspace with a 10-shade curated color selector. Clean popovers let you assign distinct visual identities to each collection board.
+
+<p align="center">
+  <img src="Assets/Screenshots/03-color-palette-popover.png" alt="Circular Color Palette Popover" width="560" />
+</p>
+
+---
+
+### 4. Adaptive Dark & Light Themes
+Carefully crafted design language tailored for modern macOS. Seamlessly switch between the default dark charcoal theme (`#161618`) and clean daylight mode (`#F7F7F9`).
+
+<p align="center">
+  <img src="Assets/Screenshots/04-light-theme.png" alt="Kikobar Light Theme" width="780" />
+</p>
+
+---
+
+### 5. Safe Board Management & Deletion
+Thoughtfully designed deletion modal confirms the removal of boards and coordinates clean cascading cleanup in the local SQLite database.
+
+<p align="center">
+  <img src="Assets/Screenshots/05-board-deletion-dialog.png" alt="Board Deletion Confirmation Dialog" width="780" />
+</p>
 
 ---
 
 ## How It Works
 
-1. **Drag anything from your screen** — Select files from Finder, an image or link from your browser, or text from any editor.
-2. **Move it towards the top-right corner** — Move the dragged item toward the top-right corner of your screen.
-3. **Kikobar reveals its collection drawer** — The trigger zone detects proximity and smoothly slides out the floating collection drawer.
-4. **Drop the item into a category** — Hover over any color-coded category drop target and release the item.
-5. **Access your collection whenever you need it** — Retrieve saved items, view QuickLook previews, or inspect your organized content at any time.
+```
+ ┌──────────────────────┐
+ │ 1. Drag Any Content  │  (Finder files, browser images, text, links)
+ └──────────┬───────────┘
+            │
+            ▼
+ ┌──────────────────────┐
+ │ 2. Move to Top-Right │  (Zero-permission edge trigger detects cursor proximity)
+ └──────────┬───────────┘
+            │
+            ▼
+ ┌──────────────────────┐
+ │ 3. Drawer Reveals    │  (Floating non-activating NSPanel slides in smoothly)
+ └──────────┬───────────┘
+            │
+            ▼
+ ┌──────────────────────┐
+ │ 4. Drop into Board   │  (Drop on existing board or empty space to create new)
+ └──────────┬───────────┘
+            │
+            ▼
+ ┌──────────────────────┐
+ │ 5. Retrieve Anytime  │  (QuickLook preview, drag-out to external apps, copy)
+ └──────────────────────┘
+```
+
+1. **Drag anything from your screen** — Files from Finder, images or links from Safari/Chrome, or text snippets from notes.
+2. **Move towards the screen edge** — The top-right proximity trigger detects the dragged item.
+3. **Kikobar reveals the drawer** — Non-activating panel slides out without stealing focus from your active application.
+4. **Drop into a board** — Drop onto an existing board, or into empty space to generate a new board on the fly.
+5. **Access and export** — Tap `Space` to QuickLook preview, or drag items out to drop them anywhere on macOS.
 
 ---
 
-## Features
+## Key Capabilities
 
-### Currently Implemented (Beta)
-
-- **Zero-Permission Edge Detection**: Lightweight, borderless `NSPanel` trigger zones positioned at the top-right screen quadrant, with automatic multi-monitor recalculation.
-- **Universal Drag Ingestion Engine**:
-  - Finder files and folders with security-scoped bookmark persistence.
-  - Browser images with direct bitmap extraction (`NSImage`) stored safely in the application container.
+### Implemented & Ready (Alpha)
+- [x] **Zero-Permission Edge Detection**: Lightweight borderless `NSPanel` trigger windows with automatic multi-monitor recalculation.
+- [x] **Multi-Type Drag Ingestion**:
+  - Finder files and folders with persistent security-scoped bookmarks.
+  - Browser images with direct bitmap extraction stored safely in the application container.
   - Web links with automatic title and URL metadata extraction.
-  - Plain text snippets persisted into isolated container text files.
+  - Text snippets stored into isolated container text files.
   - Promised file drag support via `NSFilePromiseReceiver`.
-- **Floating Collection Drawer**: Non-activating, floating window architecture powered by AppKit and SwiftUI with fluid slide-in transitions.
-- **Custom Categories**: Create, rename, delete, and reorder categories.
-- **Custom Accent Colors**: Color categories with custom HEX values, featuring built-in HEX sanitization, normalization, and palette validation.
-- **Collapsible Categories**: Expand and collapse individual categories with persisted state.
-- **Dark and Light Themes**: Native theme system with a dark charcoal default (`#161618`) and clean light mode (`#F7F7F9`).
-- **Persistent Local Storage**: Thread-safe SQLite database running with Write-Ahead Logging (WAL) and foreign-key cascading deletes.
-- **File Previews & Thumbnails**: Integrated macOS QuickLook thumbnail generation for images, documents, and files.
+- [x] **Automatic Board Creation**: Drop files into unallocated sidebar space to create a board with the files attached.
+- [x] **Drag-Out Export**: Drag collected items straight out of Kikobar into Finder, emails, messages, or browser forms.
+- [x] **QuickLook Preview**: Integrated macOS QuickLook preview controller (`Spacebar` trigger) for instant inspection.
+- [x] **Custom Boards & Color Palettes**: 10-shade curated palette selector and expandable board views.
+- [x] **Theme Engine**: Dark charcoal theme (`#161618`) and clean Light mode (`#F7F7F9`).
+- [x] **Persistent Local Storage**: Thread-safe SQLite database running with Write-Ahead Logging (WAL) and cascading foreign keys.
 
-### Planned Features
-
-- **Drag-Out Export**: Dragging collected items directly from the Kikobar drawer into external applications, emails, or Finder folders.
-- **Global Hotkey Toggle**: Open or close the collection drawer with a customizable keyboard shortcut without requiring an active drag gesture.
-- **Configurable Trigger Zones**: Support for alternative trigger positions (top-left, bottom-right, or notch integration).
-- **Search and Filtering**: In-drawer search across snippet text, document titles, and URLs.
-- **Menu Bar Companion**: Optional menu bar status item for fast access and configuration.
-- **Batch Exporting**: Select multiple items and export or compress them into an archive in one click.
+### In Progress & Planned
+- [ ] **Global Hotkey Toggle**: Open or close the drawer with a keyboard shortcut.
+- [ ] **Menu Bar Companion**: Optional menu bar status item for fast access.
+- [ ] **Search & Full-Text Filter**: In-drawer search across snippet text, document titles, and URLs.
+- [ ] **Batch Exporting**: Select multiple items and export or compress into an archive.
 
 ---
 
-## Technology
+## Technology Stack
 
-Kikobar is built with zero third-party dependencies, relying entirely on native Apple frameworks:
+Built with **100% native Apple technologies** and **zero third-party dependencies**:
 
-- **Swift 5.9+ / Swift 6** — Modern concurrency with `@MainActor` isolation and asynchronous task handling.
-- **SwiftUI** — Declarative views for collection drawers, category lists, color pickers, and theme controls.
-- **AppKit** — Low-level window management, non-activating floating panels, screen geometry tracking, and pasteboard extraction.
-- **SQLite (libsqlite3)** — Fast, lightweight local database with WAL mode and foreign-key constraints.
-- **QuickLookThumbnailing** — High-fidelity asynchronous preview generation.
-- **UniformTypeIdentifiers** — Strict content type classification.
-
----
-
-## Roadmap
-
-| Milestone | Status |
-| :--- | :---: |
-| Initial architecture and project foundation | Completed |
-| Global drag detection | Completed |
-| File ingestion engine | Completed |
-| Collection drawer UI | Completed |
-| Category management | Completed |
-| Persistent storage | Completed |
-| Application integration | Completed |
-| Beta testing | In Progress |
-| Drag-out export system | Planned |
-| Global hotkey and menu bar companion | Planned |
-| Stable 1.0 release | Planned |
+- **Swift 5.9+ / 6.0**: Modern concurrency with `@MainActor` isolation and asynchronous task handling.
+- **SwiftUI**: Declarative, responsive UI components for the sidebar, board cards, and modals.
+- **AppKit**: Non-activating floating windows (`.nonactivatingPanel`), screen coordinate tracking, and pasteboard extraction.
+- **SQLite (libsqlite3)**: Robust local database with WAL mode and foreign-key integrity.
+- **QuickLook & QuickLookThumbnailing**: High-fidelity asynchronous preview generation and native preview sheets.
+- **UniformTypeIdentifiers**: Strict macOS content type classification.
 
 ---
 
-## Development Status
+## Repository Structure
 
-Kikobar is currently in active beta. Features, layout, and internal APIs may change as we refine the user experience and incorporate feedback. 
-
-If you encounter unexpected behavior, edge cases with specific file types, or have suggestions for improvements, please report them through the issue tracker.
+```
+KikoBar/
+├── README.md               # Project overview, screenshots & download guide
+├── LICENSE                 # MIT License
+├── CONTRIBUTING.md          # Contribution guidelines & code standards
+├── CODE_OF_CONDUCT.md      # Contributor Covenant Code of Conduct
+├── SECURITY.md             # Security policy and disclosure process
+├── CHANGELOG.md            # Release history and version logs
+├── Package.swift           # Swift Package Manager manifest
+│
+├── .github/                # GitHub issue and pull request templates
+│   ├── ISSUE_TEMPLATE/
+│   │   ├── bug_report.md
+│   │   └── feature_request.md
+│   └── PULL_REQUEST_TEMPLATE.md
+│
+├── Assets/                 # Official visual assets and screenshots
+│   ├── Logo/
+│   │   └── kikobar-logo.png
+│   └── Screenshots/
+│       ├── 01-drawer-overview.png
+│       ├── 02-automatic-board-creation.png
+│       ├── 03-color-palette-popover.png
+│       ├── 04-light-theme.png
+│       └── 05-board-deletion-dialog.png
+│
+├── Documentation/          # Detailed engineering & architecture specifications
+│   ├── PRODUCT_OVERVIEW.md
+│   ├── FEATURES.md
+│   ├── ARCHITECTURE.md
+│   ├── ROADMAP.md
+│   └── DEVELOPMENT.md
+│
+├── Releases/               # Packaged application distribution archives
+│   └── Kikobar-v0.1.0-alpha.zip
+│
+├── Resources/              # Application icon, fonts, and Info.plist
+│   ├── AppIcon.icns
+│   ├── Fonts/
+│   └── Info.plist
+│
+├── scripts/                # Build and packaging automation scripts
+│   └── package_app.sh
+│
+└── Sources/                # Native Swift application source code
+    └── Kikobar/
+        ├── App/
+        ├── Coordination/
+        ├── Core/
+        ├── Features/
+        └── Infrastructure/
+```
 
 ---
 
-## Screenshots
+## Building from Source
 
-Screenshots and interface captures will be added here as the beta user interface finalizes.
-
----
-
-## Building and Testing
-
-### Requirements
-
-- macOS 14.0 (Sonoma) or later
+### Prerequisites
+- macOS 14.0 (Sonoma) or newer
 - Xcode 15.0+ or Swift 5.9+ Command Line Tools
 
-### Build
-
+### Build and Package
 ```bash
 # Clone the repository
 git clone https://github.com/rtomswastaken/KikoBar.git
 cd KikoBar
 
-# Build debug executable
-swift build
-
-# Build optimized release executable
-swift build -c release
+# Build the release application bundle (.app) and zip release
+./scripts/package_app.sh
 ```
 
-### Run Tests
-
-Kikobar has an automated test suite covering models, drag extraction, persistence, and UI controllers:
-
-```bash
-swift test
-```
+The resulting `Kikobar.app` will be created at `build/Kikobar.app`, and the packaged archive will be generated at `Releases/Kikobar-v0.1.0-alpha.zip`.
 
 ---
 
-## Feedback and Contributions
+## Feedback & Contributing
 
-Contributions, bug reports, and suggestions are welcome:
+We welcome contributions, bug reports, and suggestions:
 
-- **Report Bugs**: If you find an issue, submit a report using the [Bug Report Template](.github/ISSUE_TEMPLATE/bug_report.md).
-- **Request Features**: Share your ideas using the [Feature Request Template](.github/ISSUE_TEMPLATE/feature_request.md).
-- **Code Contributions**: Review [CONTRIBUTING.md](CONTRIBUTING.md) for architectural guidelines, code standards, and the pull request workflow.
-- **Code of Conduct**: All participants must follow our [Code of Conduct](CODE_OF_CONDUCT.md).
-
----
-
-## Documentation
-
-For in-depth details on design and architecture, consult the documentation directory:
-
-- [Product Overview](Documentation/PRODUCT_OVERVIEW.md)
-- [Feature Specification](Documentation/FEATURES.md)
-- [Architecture & Technical Design](Documentation/ARCHITECTURE.md)
-- [Project Roadmap](Documentation/ROADMAP.md)
-- [Development Guide](Documentation/DEVELOPMENT.md)
+- **Report a Bug**: Open an issue using the [Bug Report Template](.github/ISSUE_TEMPLATE/bug_report.md).
+- **Request a Feature**: Suggest improvements with the [Feature Request Template](.github/ISSUE_TEMPLATE/feature_request.md).
+- **Submit Code**: Read our [Contribution Guide](CONTRIBUTING.md) and submit a pull request.
 
 ---
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+Kikobar is open-source software licensed under the [MIT License](LICENSE).

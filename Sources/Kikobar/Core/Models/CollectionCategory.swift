@@ -1,6 +1,9 @@
 import Foundation
 
-/// Represents a user-defined category bucket for organizing dragged items.
+/// Primary organization container for dragged items, called a Board in Kikobar.
+public typealias Board = CollectionCategory
+
+/// Represents a user-defined board/category bucket for organizing dragged items.
 public struct CollectionCategory: Identifiable, Codable, Equatable, Sendable {
     public let id: UUID
     public var name: String

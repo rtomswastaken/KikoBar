@@ -9,6 +9,7 @@ Icon\r
 
 # Swift Package Manager & Build Artifacts
 .build/
+build/
 .swiftpm/
 DerivedData/
 *.xcodeproj

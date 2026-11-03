@@ -1,52 +1,137 @@
 import AppKit
 import SwiftUI
 
-/// Manages the floating collection drawer window presentation and animations.
+/// Manages the full-height black collection drawer window presentation, horizontal animations, and drag lifecycle.
 @MainActor
 public final class CollectionPanelController {
     public let panelWindow: CollectionPanelWindow
     private let coordinator: AppCoordinator
     public private(set) var isAnimating: Bool = false
+    private var exitTimer: Timer?
 
     public var isVisible: Bool {
         panelWindow.isVisible
+    }
+
+    public var isExpanded: Bool {
+        guard let screen = panelWindow.screen ?? NSScreen.main else { return false }
+        return panelWindow.isVisible && panelWindow.frame.minX < screen.visibleFrame.maxX
     }
 
     public init(coordinator: AppCoordinator, themeManager: ThemeManager) {
         self.coordinator = coordinator
 
         let screen = NSScreen.main ?? NSScreen.screens.first ?? NSScreen()
-        let initialFrame = ScreenGeometry.panelRetractedFrame(for: screen)
+        let initialFrame = ScreenGeometry.drawerCollapsedFrame(for: screen)
 
         self.panelWindow = CollectionPanelWindow(contentRect: initialFrame)
 
         let rootView = PanelContainerView(coordinator: coordinator, themeManager: themeManager)
-        let hostingController = NSHostingController(rootView: rootView)
-        hostingController.view.frame = NSRect(origin: .zero, size: initialFrame.size)
-        hostingController.view.autoresizingMask = [.width, .height]
+        let drawerVC = CollectionDrawerViewController(rootView: rootView)
+        self.panelWindow.drawerViewController = drawerVC
+        self.panelWindow.contentViewController = drawerVC
 
-        self.panelWindow.contentViewController = hostingController
         self.panelWindow.onEscapePressed = { [weak coordinator] in
-            coordinator?.hidePanel()
+            if coordinator?.boardPendingDeletion != nil {
+                Task { @MainActor in
+                    coordinator?.boardPendingDeletion = nil
+                }
+            } else if let creatingID = coordinator?.creatingBoardID {
+                Task { @MainActor in
+                    await coordinator?.cancelBoardCreation(id: creatingID)
+                }
+            } else {
+                DragSessionManager.shared.forceCollapse()
+                coordinator?.hidePanel()
+            }
+        }
+
+        DragSessionManager.shared.panelController = self
+        setupDragHandlers()
+
+        // Position collapsed off-screen by default
+        self.panelWindow.setFrame(initialFrame, display: true)
+    }
+
+    private func setupDragHandlers() {
+        panelWindow.drawerView.onDragEntered = { [weak self] sender in
+            guard let self = self else { return .copy }
+            let screen = self.panelWindow.screen ?? NSScreen.main ?? NSScreen.screens.first ?? NSScreen()
+            self.expand(on: screen)
+            DragSessionManager.shared.dragEnteredCollectionPanel(sender: sender)
+            return .copy
+        }
+
+        panelWindow.drawerView.onDragUpdated = { sender in
+            DragSessionManager.shared.cancelDismissal()
+            return .copy
+        }
+
+        panelWindow.drawerView.onDragExited = { sender in
+            DragSessionManager.shared.dragExitedCollectionPanel(at: NSEvent.mouseLocation)
+        }
+
+        panelWindow.drawerView.onPerformDrop = { [weak self] sender in
+            guard let self = self else { return false }
+            let dragPasteboard = sender.draggingPasteboard
+
+            if let targetCategoryID = DragSessionManager.shared.activeBoardID
+                ?? self.coordinator.activeHoverCategoryID {
+                // File dropped directly onto an existing board
+                DragSessionManager.shared.itemDropped(onBoardID: targetCategoryID, pasteboard: dragPasteboard)
+                return true
+            } else {
+                // File dropped into an empty area of the sidebar without targeting an existing board
+                DragSessionManager.shared.itemDroppedWithoutTarget(pasteboard: dragPasteboard)
+                return true
+            }
+        }
+
+        panelWindow.drawerView.onDragEnded = { sender in
+            DragSessionManager.shared.dragCancelledOrEnded()
         }
     }
 
-    /// Animates the collection panel smoothly onto the screen from the right edge with a spring-like easeOut.
-    public func show(on targetScreen: NSScreen? = nil) {
+    /// Repositions the panel to adapt to screen geometry, display resolution, or multi-monitor changes.
+    public func reposition(on targetScreen: NSScreen? = nil) {
         let screen = targetScreen ?? panelWindow.screen ?? NSScreen.main ?? NSScreen.screens.first ?? NSScreen()
-        let endFrame = ScreenGeometry.panelExpandedFrame(for: screen)
-        let startFrame = ScreenGeometry.panelRetractedFrame(for: screen)
+        let targetFrame = isExpanded ? ScreenGeometry.drawerExpandedFrame(for: screen) : ScreenGeometry.drawerCollapsedFrame(for: screen)
+        panelWindow.setFrame(targetFrame, display: true)
+    }
 
-        if !panelWindow.isVisible {
+    /// Smooth horizontal expansion animation from the right screen edge.
+    public func expand(on targetScreen: NSScreen? = nil, animated: Bool = true) {
+        let screen = targetScreen ?? panelWindow.screen ?? NSScreen.main ?? NSScreen.screens.first ?? NSScreen()
+        let width = ScreenGeometry.userPanelWidth
+        let endFrame = ScreenGeometry.drawerExpandedFrame(for: screen, width: width)
+
+        DragSessionManager.shared.cancelDismissal()
+        coordinator.showPanel()
+
+        // If window is currently hidden/ordered out or off-screen, ensure it starts positioned just off the right edge
+        if !panelWindow.isVisible || panelWindow.frame.minX >= screen.visibleFrame.maxX {
+            let startFrame = CGRect(
+                x: screen.visibleFrame.maxX,
+                y: screen.visibleFrame.minY,
+                width: width,
+                height: screen.visibleFrame.height
+            )
             panelWindow.setFrame(startFrame, display: false)
-            panelWindow.orderFrontRegardless()
+        }
+
+        panelWindow.orderFrontRegardless()
+
+        guard panelWindow.frame != endFrame else { return }
+
+        if !animated || DesignSystem.Animation.shouldReduceMotion {
+            panelWindow.setFrame(endFrame, display: true)
+            return
         }
 
         isAnimating = true
         NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.30
-            // macOS spring-like fluid deceleration curve
-            context.timingFunction = CAMediaTimingFunction(controlPoints: 0.16, 1.0, 0.3, 1.0)
+            context.duration = DesignSystem.Animation.sidebarOpeningDuration
+            context.timingFunction = DesignSystem.Animation.sidebarOpeningTiming
             self.panelWindow.animator().setFrame(endFrame, display: true)
         }, completionHandler: {
             MainActor.assumeIsolated {
@@ -55,24 +140,73 @@ public final class CollectionPanelController {
         })
     }
 
-    /// Animates the collection panel sliding off the screen to the right.
-    public func hide() {
-        guard panelWindow.isVisible else { return }
-
+    /// Smooth horizontal retraction animation back off the right screen edge.
+    public func collapse(animated: Bool = true) {
         let screen = panelWindow.screen ?? NSScreen.main ?? NSScreen.screens.first ?? NSScreen()
-        let endFrame = ScreenGeometry.panelRetractedFrame(for: screen)
+        let currentWidth = panelWindow.frame.width > 0 ? panelWindow.frame.width : ScreenGeometry.userPanelWidth
+        // Smooth slide out: x translates to screen.visibleFrame.maxX while retaining full width
+        let endFrame = CGRect(
+            x: screen.visibleFrame.maxX,
+            y: screen.visibleFrame.minY,
+            width: currentWidth,
+            height: screen.visibleFrame.height
+        )
+
+        DragSessionManager.shared.cancelDismissal()
+
+        guard panelWindow.frame != endFrame else {
+            panelWindow.orderOut(nil)
+            coordinator.hidePanel()
+            return
+        }
+
+        if !animated || DesignSystem.Animation.shouldReduceMotion {
+            panelWindow.setFrame(endFrame, display: true)
+            panelWindow.orderOut(nil)
+            coordinator.hidePanel()
+            return
+        }
 
         isAnimating = true
         NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.22
-            // Smooth ease-in retraction
-            context.timingFunction = CAMediaTimingFunction(controlPoints: 0.4, 0.0, 0.2, 1.0)
+            context.duration = DesignSystem.Animation.sidebarClosingDuration
+            context.timingFunction = DesignSystem.Animation.sidebarClosingTiming
             self.panelWindow.animator().setFrame(endFrame, display: true)
         }, completionHandler: {
             MainActor.assumeIsolated {
-                self.panelWindow.orderOut(nil)
                 self.isAnimating = false
+                self.panelWindow.orderOut(nil)
+                self.coordinator.hidePanel()
             }
         })
+    }
+
+    /// Dynamically resizes the panel width while keeping it attached to the right screen edge.
+    public func updatePanelWidth(_ width: CGFloat) {
+        let screen = panelWindow.screen ?? NSScreen.main ?? NSScreen.screens.first ?? NSScreen()
+        let maxAllowed = min(ScreenGeometry.maxPanelWidth, screen.visibleFrame.width * 0.7)
+        let clamped = min(max(width, ScreenGeometry.minPanelWidth), maxAllowed)
+
+        ScreenGeometry.userPanelWidth = clamped
+
+        if isExpanded {
+            let newFrame = CGRect(
+                x: screen.visibleFrame.maxX - clamped,
+                y: screen.visibleFrame.minY,
+                width: clamped,
+                height: screen.visibleFrame.height
+            )
+            panelWindow.setFrame(newFrame, display: true)
+        }
+    }
+
+    /// Compatibility wrapper for show.
+    public func show(on targetScreen: NSScreen? = nil) {
+        expand(on: targetScreen)
+    }
+
+    /// Compatibility wrapper for hide.
+    public func hide() {
+        collapse()
     }
 }

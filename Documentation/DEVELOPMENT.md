@@ -35,23 +35,15 @@ To build an optimized release binary:
 swift build -c release
 ```
 
-### 3. Run the Automated Test Suite
+### 3. Package the macOS Application (.app)
 
-Kikobar relies on automated unit and integration tests across data persistence, coordinate tracking, drag extraction, and UI controllers:
-
-```bash
-swift test
-```
-
-To run a specific test suite or test filter:
+To assemble the complete native `Kikobar.app` bundle and generate the distribution archive:
 
 ```bash
-# Run only drag engine tests
-swift test --filter "Drag Engine & Ingestion Service Tests"
-
-# Run persistence tests
-swift test --filter "SQLite Persistence & Storage Management Tests"
+./scripts/package_app.sh
 ```
+
+This compiles an optimized release binary, embeds the official application icon (`AppIcon.icns`) and custom fonts (`Poppins`), applies ad-hoc code signing, and outputs the installable application to `build/Kikobar.app` as well as `Releases/Kikobar-v0.1.0-alpha.zip`.
 
 ---
 

@@ -29,16 +29,16 @@ public final class ThemeManager: ThemeManagerProtocol, ObservableObject {
     public var panelBackground: Color {
         switch currentTheme {
         case .dark:
-            return HexColor.toColor(hex: "#161618")
+            return Color.black
         case .light:
-            return HexColor.toColor(hex: "#F5F5F7")
+            return Color.white
         }
     }
 
     public var cardBackground: Color {
         switch currentTheme {
         case .dark:
-            return HexColor.toColor(hex: "#202024")
+            return Color.black
         case .light:
             return Color.white
         }
@@ -47,31 +47,45 @@ public final class ThemeManager: ThemeManagerProtocol, ObservableObject {
     public var borderColor: Color {
         switch currentTheme {
         case .dark:
-            return HexColor.toColor(hex: "#2E2E34")
+            return Color(white: 0.15)
         case .light:
-            return HexColor.toColor(hex: "#E0E0E6")
+            return Color(white: 0.86)
         }
     }
 
     public var primaryTextColor: Color {
         switch currentTheme {
         case .dark:
-            return HexColor.toColor(hex: "#EEEEF0")
+            return Color.white
         case .light:
-            return HexColor.toColor(hex: "#1C1C1E")
+            return Color.black
         }
     }
 
     public var secondaryTextColor: Color {
         switch currentTheme {
         case .dark:
-            return HexColor.toColor(hex: "#98989F")
+            return Color(white: 0.50)
         case .light:
-            return HexColor.toColor(hex: "#6C6C72")
+            return Color(white: 0.40)
+        }
+    }
+
+    public var iconColor: Color {
+        switch currentTheme {
+        case .dark:
+            return Color.white
+        case .light:
+            return Color.black
         }
     }
 
     public var accentColor: Color {
-        return HexColor.toColor(hex: "#8B7CFF")
+        switch currentTheme {
+        case .dark:
+            return Color.white
+        case .light:
+            return Color.black
+        }
     }
 }
