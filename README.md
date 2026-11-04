@@ -205,6 +205,15 @@ KikoBar/
 │   ├── ROADMAP.md
 │   └── DEVELOPMENT.md
 │
+├── Wiki/                   # 6-module comprehensive implementation wiki
+│   ├── README.md
+│   ├── 01-System-Architecture-and-Design-Philosophy.md
+│   ├── 02-Window-Management-and-Trigger-Mechanics.md
+│   ├── 03-Drag-and-Drop-Ingestion-and-Export-Engine.md
+│   ├── 04-Data-Persistence-and-Storage-Architecture.md
+│   ├── 05-User-Interface-and-Design-System.md
+│   └── 06-Step-by-Step-Implementation-Guide.md
+│
 ├── Releases/               # Packaged application distribution archives
 │   └── Kikobar-v0.1.0-alpha.zip
 │
@@ -224,6 +233,22 @@ KikoBar/
         ├── Features/
         └── Infrastructure/
 ```
+
+---
+
+## 📖 Comprehensive Technical Wiki
+
+A complete 6-module technical wiki is available in the [`Wiki/`](Wiki/README.md) directory. It serves as an exhaustive blueprint explaining every subsystem in depth, enabling anyone to understand or rebuild Kikobar from scratch:
+
+| Module | Document | Description |
+| :--- | :--- | :--- |
+| **Index** | [**Wiki Index & Navigation**](Wiki/README.md) | High-level overview, system flowcharts, and navigation map. |
+| **01** | [**System Architecture & Design Philosophy**](Wiki/01-System-Architecture-and-Design-Philosophy.md) | Zero-permission model, 4-tier layered architecture, concurrency, and lifecycle. |
+| **02** | [**Window Management & Trigger Mechanics**](Wiki/02-Window-Management-and-Trigger-Mechanics.md) | Low-level AppKit `NSPanel`s, multi-monitor coordinate math, and dismissal state machines. |
+| **03** | [**Drag-and-Drop Ingestion & Export Engine**](Wiki/03-Drag-and-Drop-Ingestion-and-Export-Engine.md) | `NSPasteboard` parsing, promised files, automatic board creation, and drag-out export. |
+| **04** | [**Data Persistence & Storage Architecture**](Wiki/04-Data-Persistence-and-Storage-Architecture.md) | SQLite C API (`libsqlite3`), WAL mode, cascading relational schema, and QuickLook caching. |
+| **05** | [**User Interface & Design System**](Wiki/05-User-Interface-and-Design-System.md) | Modern charcoal/daylight design tokens, Poppins typography, and SwiftUI component hierarchy. |
+| **06** | [**Step-by-Step Implementation Guide**](Wiki/06-Step-by-Step-Implementation-Guide.md) | The end-to-end recipe: build sequence, packaging scripts, and common macOS pitfalls. |
 
 ---
 
